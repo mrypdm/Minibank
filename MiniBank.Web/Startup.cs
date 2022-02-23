@@ -35,7 +35,7 @@ namespace MiniBank.Web
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "MiniBank.Web", Version = "v1"});
             });
 
-            services.AddScoped<IDatabase, CurrencyRateDatabase>();
+            services.AddScoped<IRubleRateDatabase, RubleRateDatabase>();
             services.AddScoped<IRublesConverter, RublesConverter>();
         }
 

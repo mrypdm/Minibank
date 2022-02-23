@@ -5,9 +5,9 @@ namespace MiniBank.Core
 {
     public class RublesConverter : IRublesConverter
     {
-        private readonly IDatabase _database;
+        private readonly IRubleRateDatabase _database;
 
-        public RublesConverter(IDatabase database)
+        public RublesConverter(IRubleRateDatabase database)
         {
             _database = database;
         }

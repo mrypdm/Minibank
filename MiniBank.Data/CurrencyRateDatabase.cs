@@ -3,11 +3,11 @@ using MiniBank.Core;
 
 namespace MiniBank.Data
 {
-    public class CurrencyRateDatabase : IDatabase
+    public class RubleRateDatabase : IRubleRateDatabase
     {
         private readonly Random _random = new();
         
-        public int Get(string key)
+        public int Get(string currencyCode)
         {
             return _random.Next(0, 100);
         }

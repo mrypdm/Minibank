@@ -3,8 +3,8 @@ using System.Linq;
 
 namespace MiniBank.Core
 {
-    public interface IDatabase
+    public interface IRubleRateDatabase
     {
-        int Get(string key);
+        int Get(string currencyCode);
     }
 }
