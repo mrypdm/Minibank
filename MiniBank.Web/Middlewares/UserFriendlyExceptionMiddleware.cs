@@ -21,7 +21,7 @@ namespace MiniBank.Web.Middlewares
             }
             catch (UserFriendlyException userFriendlyException)
             {
-                await context.Response.WriteAsJsonAsync(new { Message = userFriendlyException.Message });
+                await context.Response.WriteAsJsonAsync(new { userFriendlyException.Message });
             }
         }
     }

@@ -15,7 +15,7 @@ namespace MiniBank.Core
         public int Convert(int amount, string currencyCode)
         {
             if (amount < 0)
-                throw new UserFriendlyException($"Amount must be positive");
+                throw new UserFriendlyException("Amount must be positive");
 
             return amount / _database.Get(currencyCode);
         }
