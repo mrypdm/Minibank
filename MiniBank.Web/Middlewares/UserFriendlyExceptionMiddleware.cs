@@ -21,6 +21,7 @@ namespace MiniBank.Web.Middlewares
             }
             catch (UserFriendlyException userFriendlyException)
             {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 await context.Response.WriteAsJsonAsync(new { userFriendlyException.Message });
             }
         }
