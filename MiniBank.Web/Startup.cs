@@ -35,8 +35,8 @@ namespace MiniBank.Web
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "MiniBank.Web", Version = "v1"});
             });
 
-            services.AddScoped<IRubleRateDatabase, RubleRateDatabase>();
-            services.AddScoped<IRublesConverter, RublesConverter>();
+            services.AddScoped<ICurrencyRateProvider, CurrencyRateProvider>();
+            services.AddScoped<ICurrencyConverter, CurrencyConverter>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
