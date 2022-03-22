@@ -1,6 +1,4 @@
-﻿using System;
-using System.Dynamic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
 namespace MiniBank.Web.Middlewares

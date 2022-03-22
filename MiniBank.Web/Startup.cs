@@ -1,15 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.IO;
+using System.Reflection;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using MiniBank.Core;
 using MiniBank.Data;
@@ -33,10 +30,17 @@ namespace MiniBank.Web
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo {Title = "MiniBank.Web", Version = "v1"});
+                c.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory,
+                    $"{Assembly.GetExecutingAssembly().GetName().Name}.xml"));
             });
 
-            services.AddScoped<ICurrencyRateProvider, CurrencyRateProvider>();
-            services.AddScoped<ICurrencyConverter, CurrencyConverter>();
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                var converter = new JsonStringEnumConverter();
+                options.JsonSerializerOptions.Converters.Add(converter);
+            });
+
+            services.AddData().AddCore();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -48,20 +52,17 @@ namespace MiniBank.Web
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MiniBank.Web v1"));
             }
-            
+
             app.UseMiddleware<ExceptionMiddleware>();
-            app.UseMiddleware<UserFriendlyExceptionMiddleware>();
-            
+            app.UseMiddleware<ValidationExceptionMiddleware>();
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
 
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
         }
     }
 }
