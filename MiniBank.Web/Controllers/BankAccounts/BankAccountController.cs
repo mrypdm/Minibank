@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MiniBank.Core.BankAccounts;
 using MiniBank.Core.BankAccounts.Services;
@@ -20,72 +20,55 @@ namespace MiniBank.Web.Controllers.BankAccounts
         }
 
         /// <summary>
-        /// Get all accounts
-        /// </summary>
-        [HttpGet]
-        public IEnumerable<BankAccountDto> GetAll()
-        {
-            return _service.GetAll().Select(ac => new BankAccountDto
-            {
-                Id = ac.Id,
-                UserId = ac.UserId,
-                Amount = ac.Amount,
-                CurrencyCode = ac.CurrencyCode,
-                OpeningDate = ac.OpeningDate,
-                ClosingDate = ac.ClosingDate,
-                IsClosed = ac.IsClosed,
-            });
-        }
-
-        /// <summary>
         /// Create new account
         /// </summary>
         [HttpPost]
-        public void CreateAccount(BankAccountCreateDto newAccountInfo)
+        public Task CreateAccount(BankAccountCreateDto newAccountInfo, CancellationToken token)
         {
-            _service.Create(new BankAccount
+            return _service.Create(new BankAccount
             {
                 UserId = newAccountInfo.UserId,
                 CurrencyCode = newAccountInfo.CurrencyCode,
                 Amount = newAccountInfo.Amount
-            });
+            }, token);
         }
 
         /// <summary>
         /// Calculate transfer commission
         /// </summary>
         [HttpGet("calc-commission")]
-        public double CalculateTransferCommission(double amount, string fromAccountId, string toAccountId)
+        public Task<double> CalculateTransferCommission(double amount, string fromAccountId, string toAccountId,
+            CancellationToken token)
         {
             return _service.CalculateTransferCommission(new Transfer
             {
                 Amount = amount,
                 FromAccountId = fromAccountId,
                 ToAccountId = toAccountId
-            });
+            }, token);
         }
 
         /// <summary>
         /// Make transfer between accounts
         /// </summary>
         [HttpPost("transfer")]
-        public void MakeTransfer(TransferCreateDto transferInfo)
+        public Task MakeTransfer(TransferCreateDto transferInfo, CancellationToken token)
         {
-            _service.MakeTransfer(new Transfer
+            return _service.MakeTransfer(new Transfer
             {
                 Amount = transferInfo.Amount,
                 FromAccountId = transferInfo.FromAccountId,
                 ToAccountId = transferInfo.ToAccountId
-            });
+            }, token);
         }
 
         /// <summary>
         /// Close account
         /// </summary>
         [HttpDelete("{accountId}")]
-        public void CloseAccountById(string accountId)
+        public Task CloseAccountById(string accountId, CancellationToken token)
         {
-            _service.CloseById(accountId);
+            return _service.CloseById(accountId, token);
         }
     }
 }

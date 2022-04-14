@@ -1,15 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using MiniBank.Core.Transfers;
 
 namespace MiniBank.Core.BankAccounts.Services
 {
     public interface IBankAccountService
     {
-        BankAccount GetById(string id);
-        IEnumerable<BankAccount> GetAll();
-        void Create(BankAccount account);
-        void CloseById(string id);
-        double CalculateTransferCommission(Transfer transferInfo);
-        void MakeTransfer(Transfer transferInfo);
+        Task Create(BankAccount account, CancellationToken token);
+        Task CloseById(string id, CancellationToken token);
+        Task<double> CalculateTransferCommission(Transfer transferInfo, CancellationToken token);
+        Task MakeTransfer(Transfer transferInfo, CancellationToken token);
     }
 }

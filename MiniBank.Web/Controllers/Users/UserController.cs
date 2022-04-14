@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using MiniBank.Core.Users;
 using MiniBank.Core.Users.Services;
@@ -22,10 +22,10 @@ namespace MiniBank.Web.Controllers.Users
         /// Get user by id
         /// </summary>
         [HttpGet("{id}")]
-        public UserDto GetById(string id)
+        public async Task<UserDto> GetById(string id, CancellationToken token)
         {
-            var foundedUser = _service.GetById(id);
-            
+            var foundedUser = await _service.GetById(id, token);
+
             return new UserDto
             {
                 Id = foundedUser.Id,
@@ -35,53 +35,39 @@ namespace MiniBank.Web.Controllers.Users
         }
 
         /// <summary>
-        /// Get all users
-        /// </summary>
-        [HttpGet]
-        public IEnumerable<UserDto> GetAll()
-        {
-            return _service.GetAll().Select(u => new UserDto
-            {
-                Id = u.Id,
-                Login = u.Login,
-                Email = u.Email
-            });
-        }
-
-        /// <summary>
         /// Create new user
         /// </summary>
         [HttpPost]
-        public void Create(UserCreateDto newUserInfo)
+        public Task Create(UserCreateDto newUserInfo, CancellationToken token)
         {
-            _service.Create(new User
+            return _service.Create(new User
             {
                 Login = newUserInfo.Login,
                 Email = newUserInfo.Email
-            });
+            }, token);
         }
 
         /// <summary>
         /// Change user info
         /// </summary>
         [HttpPut("{id}")]
-        public void UpdateById(string id, UserUpdateDto updatedUserInfo)
+        public Task UpdateById(string id, UserUpdateDto updatedUserInfo, CancellationToken token)
         {
-            _service.Update(new User
+            return _service.Update(new User
             {
                 Id = id,
                 Login = updatedUserInfo.Login,
                 Email = updatedUserInfo.Email
-            });
+            }, token);
         }
 
         /// <summary>
         /// Delete user by id
         /// </summary>
         [HttpDelete("{id}")]
-        public void DeleteById(string id)
+        public Task DeleteById(string id, CancellationToken token)
         {
-            _service.DeleteById(id);
+            return _service.DeleteById(id, token);
         }
     }
 }

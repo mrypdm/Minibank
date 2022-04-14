@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using MiniBank.Core.Currencies;
 
 namespace MiniBank.Web.Controllers.Currencies
@@ -18,7 +19,7 @@ namespace MiniBank.Web.Controllers.Currencies
         /// Make currency conversion
         /// </summary>
         [HttpGet]
-        public double Convert(double amount, CurrencyCodes fromCurrencyCode, CurrencyCodes toCurrencyCode)
+        public Task<double> Convert(double amount, CurrencyCodes fromCurrencyCode, CurrencyCodes toCurrencyCode)
         {
             return _converter.Convert(amount, fromCurrencyCode, toCurrencyCode);
         }

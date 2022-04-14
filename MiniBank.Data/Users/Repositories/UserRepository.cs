@@ -1,46 +1,48 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using MiniBank.Core.Exceptions;
 using MiniBank.Core.Users;
 using MiniBank.Core.Users.Repositories;
+using MiniBank.Data.Context;
 using MiniBank.Data.Users.Mappers;
 
 namespace MiniBank.Data.Users.Repositories
 {
     public class UserRepository : IUserRepository
     {
-        private static readonly List<UserDbModel> UsersStorage = new();
+        private readonly MiniBankContext _context;
 
-        public bool ExistsWithId(string id)
+        public UserRepository(MiniBankContext context)
         {
-            return UsersStorage.Any(user => user.Id == id);
+            _context = context;
         }
 
-        public User GetById(string id)
+        public Task<bool> ExistsWithId(string id, CancellationToken token)
         {
-            var dbModel = UsersStorage.Find(u => u.Id == id);
+            return _context.Users.AnyAsync(u => u.Id == id, token);
+        }
+
+        public async Task<User> GetById(string id, CancellationToken token)
+        {
+            var dbModel = await _context.Users.FirstOrDefaultAsync(u => u.Id == id, token);
 
             if (dbModel == null)
             {
                 throw new ValidationException($"User with id {id} doesn't exist");
             }
-            
+
             return dbModel.ToModel();
         }
 
-        public IEnumerable<User> GetAll()
+        public async Task Create(User user, CancellationToken token)
         {
-            return UsersStorage.Select(user => user.ToModel());
+            await _context.Users.AddAsync(user.ToDbModel(), token);
         }
 
-        public void Create(User user)
+        public async Task Update(User user, CancellationToken token)
         {
-            UsersStorage.Add(user.ToDbModel());
-        }
-
-        public void Update(User user)
-        {
-            var dbModel = UsersStorage.Find(u => u.Id == user.Id);
+            var dbModel = await _context.Users.FirstOrDefaultAsync(u => u.Id == user.Id, token);
 
             if (dbModel == null)
             {
@@ -51,16 +53,16 @@ namespace MiniBank.Data.Users.Repositories
             dbModel.Email = user.Email;
         }
 
-        public void DeleteById(string id)
+        public async Task DeleteById(string id, CancellationToken token)
         {
-            var dbModel = UsersStorage.Find(u => u.Id == id);
+            var dbModel = await _context.Users.FirstOrDefaultAsync(u => u.Id == id, token);
 
             if (dbModel == null)
             {
                 throw new ValidationException($"User with id {id} doesn't exist");
             }
 
-            UsersStorage.Remove(dbModel);
+            _context.Users.Remove(dbModel);
         }
     }
 }

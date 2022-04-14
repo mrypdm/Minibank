@@ -1,7 +1,9 @@
-﻿namespace MiniBank.Core.Currencies
+﻿using System.Threading.Tasks;
+
+namespace MiniBank.Core.Currencies
 {
     public interface ICurrencyRateProvider
     {
-        double GetRate(CurrencyCodes fromCurrency, CurrencyCodes toCurrency);
+        Task<double> GetRate(CurrencyCodes fromCurrency, CurrencyCodes toCurrency);
     }
 }
