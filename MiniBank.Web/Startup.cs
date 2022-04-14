@@ -40,7 +40,7 @@ namespace MiniBank.Web
                 options.JsonSerializerOptions.Converters.Add(converter);
             });
 
-            services.AddData().AddCore();
+            services.AddData(Configuration).AddCore();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -53,8 +53,11 @@ namespace MiniBank.Web
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MiniBank.Web v1"));
             }
 
+            app.MigrateDatabase();
+
             app.UseMiddleware<ExceptionMiddleware>();
             app.UseMiddleware<ValidationExceptionMiddleware>();
+            app.UseMiddleware<FluentValidationExceptionMiddleware>();
 
             app.UseHttpsRedirection();
 

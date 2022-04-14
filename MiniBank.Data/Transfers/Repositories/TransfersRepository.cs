@@ -1,36 +1,38 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using MiniBank.Core.Exceptions;
 using MiniBank.Core.Transfers;
 using MiniBank.Core.Transfers.Repositories;
+using MiniBank.Data.Context;
 using MiniBank.Data.Transfers.Mappers;
 
 namespace MiniBank.Data.Transfers.Repositories
 {
     public class TransferRepository : ITransferRepository
     {
-        private static readonly List<TransferDbModel> TransfersStorage = new();
+        private readonly MiniBankContext _context;
 
-        public Transfer GetById(string id)
+        public TransferRepository(MiniBankContext context)
         {
-            var dbModel = TransfersStorage.Find(t => t.Id == id);
+            _context = context;
+        }
+
+        public async Task<Transfer> GetById(string id, CancellationToken token)
+        {
+            var dbModel = await _context.Transfers.FirstOrDefaultAsync(transfer => transfer.Id == id, token);
 
             if (dbModel == null)
             {
                 throw new ValidationException($"Transfer with id {id} doesn't exist");
             }
-            
+
             return dbModel.ToModel();
         }
 
-        public IEnumerable<Transfer> GetAll()
+        public async Task Create(Transfer transfer, CancellationToken token)
         {
-            return TransfersStorage.Select(transfer => transfer.ToModel());
-        }
-
-        public void Create(Transfer transfer)
-        {
-            TransfersStorage.Add(transfer.ToDbModel());
+            await _context.Transfers.AddAsync(transfer.ToDbModel(), token);
         }
     }
 }

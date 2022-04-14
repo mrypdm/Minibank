@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace MiniBank.Core.Users.Repositories
 {
     public interface IUserRepository
     {
-        bool ExistsWithId(string id);
-        User GetById(string id);
-        IEnumerable<User> GetAll();
-        void Create(User user);
-        void Update(User user);
-        void DeleteById(string id);
+        Task<bool> ExistsWithId(string id, CancellationToken token);
+        Task<User> GetById(string id, CancellationToken token);
+        Task Create(User user, CancellationToken token);
+        Task Update(User user, CancellationToken token);
+        Task DeleteById(string id, CancellationToken token);
     }
 }

@@ -1,41 +1,48 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using MiniBank.Core.BankAccounts;
 using MiniBank.Core.BankAccounts.Repositories;
 using MiniBank.Core.Exceptions;
 using MiniBank.Data.BankAccounts.Mappers;
+using MiniBank.Data.Context;
 
 namespace MiniBank.Data.BankAccounts.Repositories
 {
     public class BankAccountRepository : IBankAccountRepository
     {
-        private static readonly List<BankAccountDbModel> BankAccountsStorage = new();
+        private readonly MiniBankContext _context;
 
-        public BankAccount GetById(string id)
+        public BankAccountRepository(MiniBankContext context)
         {
-            var dbModel = BankAccountsStorage.Find(ac => ac.Id == id);
+            _context = context;
+        }
+
+        public Task<bool> ExistsWithId(string id, CancellationToken token)
+        {
+            return _context.BankAccounts.AnyAsync(ac => ac.Id == id, token);
+        }
+
+        public async Task<BankAccount> GetById(string id, CancellationToken token)
+        {
+            var dbModel = await _context.BankAccounts.FirstOrDefaultAsync(ac => ac.Id == id, token);
 
             if (dbModel == null)
             {
                 throw new ValidationException($"Account with id {id} doesn't exist");
             }
-            
+
             return dbModel.ToModel();
         }
 
-        public IEnumerable<BankAccount> GetAll()
+        public async Task Create(BankAccount account, CancellationToken token)
         {
-            return BankAccountsStorage.Select(account => account.ToModel());
+            await _context.BankAccounts.AddAsync(account.ToDbModel(), token);
         }
 
-        public void Create(BankAccount account)
+        public async Task Update(BankAccount account, CancellationToken token)
         {
-            BankAccountsStorage.Add(account.ToDbModel());
-        }
-
-        public void Update(BankAccount account)
-        {
-            var dbModel = BankAccountsStorage.Find(ac => ac.Id == account.Id);
+            var dbModel = await _context.BankAccounts.FirstOrDefaultAsync(ac => ac.Id == account.Id, token);
 
             if (dbModel == null)
             {
@@ -50,9 +57,9 @@ namespace MiniBank.Data.BankAccounts.Repositories
             dbModel.IsClosed = account.IsClosed;
         }
 
-        public bool ExistsAccountsForUserById(string userId)
+        public Task<bool> ExistsAccountsForUserById(string userId, CancellationToken token)
         {
-            return BankAccountsStorage.Any(account => account.UserId == userId);
+            return _context.BankAccounts.AnyAsync(ac => ac.UserId == userId, token);
         }
     }
 }

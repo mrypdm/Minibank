@@ -1,13 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System.Threading;
+using System.Threading.Tasks;
 
 namespace MiniBank.Core.Users.Services
 {
     public interface IUserService
     {
-        User GetById(string id);
-        IEnumerable<User> GetAll();
-        void Create(User user);
-        void Update(User user);
-        void DeleteById(string id);
+        Task<User> GetById(string id, CancellationToken token);
+        Task Create(User user, CancellationToken token);
+        Task Update(User user, CancellationToken token);
+        Task DeleteById(string id, CancellationToken token);
     }
 }

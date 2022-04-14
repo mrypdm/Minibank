@@ -1,56 +1,52 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using FluentValidation;
 using MiniBank.Core.BankAccounts.Repositories;
 using MiniBank.Core.Currencies;
-using MiniBank.Core.Exceptions;
 using MiniBank.Core.Transfers;
 using MiniBank.Core.Transfers.Repositories;
-using MiniBank.Core.Users.Repositories;
+using ValidationException = MiniBank.Core.Exceptions.ValidationException;
 
 namespace MiniBank.Core.BankAccounts.Services
 {
     public class BankAccountService : IBankAccountService
     {
         private readonly IBankAccountRepository _accountRepository;
-        private readonly IUserRepository _userRepository;
         private readonly ITransferRepository _transferRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrencyConverter _converter;
 
-        public BankAccountService(IBankAccountRepository accountRepository, IUserRepository userRepository,
-            ITransferRepository transferRepository, ICurrencyConverter converter)
+        private readonly IValidator<BankAccount> _accountValidator;
+        private readonly IValidator<Transfer> _transferValidator;
+
+        public BankAccountService(IBankAccountRepository accountRepository, ITransferRepository transferRepository,
+            ICurrencyConverter converter, IUnitOfWork unitOfWork,
+            IValidator<BankAccount> accountValidator, IValidator<Transfer> transferValidator)
         {
             _accountRepository = accountRepository;
-            _userRepository = userRepository;
             _transferRepository = transferRepository;
             _converter = converter;
+            _unitOfWork = unitOfWork;
+            _accountValidator = accountValidator;
+            _transferValidator = transferValidator;
         }
 
-        public BankAccount GetById(string id)
+        public async Task Create(BankAccount account, CancellationToken token)
         {
-            return _accountRepository.GetById(id);
-        }
-
-        public IEnumerable<BankAccount> GetAll()
-        {
-            return _accountRepository.GetAll();
-        }
-
-        public void Create(BankAccount account)
-        {
-            if (!_userRepository.ExistsWithId(account.UserId))
-            {
-                throw new ValidationException($"Can't create account because user with id {account.UserId} doesn't exist");
-            }
+            await _accountValidator.ValidateAndThrowAsync(account, token);
 
             account.Id = Guid.NewGuid().ToString();
             account.OpeningDate = DateTime.Now;
 
-            _accountRepository.Create(account);
+            await _accountRepository.Create(account, token);
+
+            await _unitOfWork.SaveChanges(token);
         }
 
-        public void CloseById(string id)
+        public async Task CloseById(string id, CancellationToken token)
         {
-            var account = _accountRepository.GetById(id);
+            var account = await _accountRepository.GetById(id, token);
 
             if (account.IsClosed)
             {
@@ -65,13 +61,17 @@ namespace MiniBank.Core.BankAccounts.Services
             account.ClosingDate = DateTime.Now;
             account.IsClosed = true;
 
-            _accountRepository.Update(account);
+            await _accountRepository.Update(account, token);
+
+            await _unitOfWork.SaveChanges(token);
         }
 
-        public double CalculateTransferCommission(Transfer transferInfo)
+        public async Task<double> CalculateTransferCommission(Transfer transferInfo, CancellationToken token)
         {
-            var fromAccount = _accountRepository.GetById(transferInfo.FromAccountId);
-            var toAccount = _accountRepository.GetById(transferInfo.ToAccountId);
+            await _transferValidator.ValidateAndThrowAsync(transferInfo, token);
+
+            var fromAccount = await _accountRepository.GetById(transferInfo.FromAccountId, token);
+            var toAccount = await _accountRepository.GetById(transferInfo.ToAccountId, token);
 
             if (fromAccount.UserId == toAccount.UserId)
             {
@@ -81,10 +81,12 @@ namespace MiniBank.Core.BankAccounts.Services
             return Math.Round(transferInfo.Amount * 0.02, 2);
         }
 
-        public void MakeTransfer(Transfer transferInfo)
+        public async Task MakeTransfer(Transfer transferInfo, CancellationToken token)
         {
-            var fromAccount = _accountRepository.GetById(transferInfo.FromAccountId);
-            var toAccount = _accountRepository.GetById(transferInfo.ToAccountId);
+            await _transferValidator.ValidateAndThrowAsync(transferInfo, token);
+
+            var fromAccount = await _accountRepository.GetById(transferInfo.FromAccountId, token);
+            var toAccount = await _accountRepository.GetById(transferInfo.ToAccountId, token);
 
             if (fromAccount.IsClosed)
             {
@@ -101,10 +103,12 @@ namespace MiniBank.Core.BankAccounts.Services
                 throw new ValidationException("Insufficient funds on the sender's account");
             }
 
-            double newAmount = 
+            transferInfo.CurrencyCode = fromAccount.CurrencyCode;
+
+            double newAmount =
                 fromAccount.CurrencyCode == toAccount.CurrencyCode
-                ? transferInfo.Amount
-                : _converter.Convert(transferInfo.Amount, fromAccount.CurrencyCode, toAccount.CurrencyCode);
+                    ? transferInfo.Amount
+                    : await _converter.Convert(transferInfo.Amount, fromAccount.CurrencyCode, toAccount.CurrencyCode);
 
             if (fromAccount.UserId != toAccount.UserId)
             {
@@ -114,13 +118,15 @@ namespace MiniBank.Core.BankAccounts.Services
             fromAccount.Amount -= transferInfo.Amount;
             toAccount.Amount += newAmount;
 
-            _accountRepository.Update(fromAccount);
-            _accountRepository.Update(toAccount);
+            await _accountRepository.Update(fromAccount, token);
+            await _accountRepository.Update(toAccount, token);
 
             transferInfo.Id = Guid.NewGuid().ToString();
             transferInfo.TransferDateTime = DateTime.Now;
 
-            _transferRepository.Create(transferInfo);
+            await _transferRepository.Create(transferInfo, token);
+
+            await _unitOfWork.SaveChanges(token);
         }
     }
 }
