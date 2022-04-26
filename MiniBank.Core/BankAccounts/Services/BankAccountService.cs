@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using FluentValidation;
 using MiniBank.Core.BankAccounts.Repositories;
 using MiniBank.Core.Currencies;
+using MiniBank.Core.DateTimes;
 using MiniBank.Core.Transfers;
 using MiniBank.Core.Transfers.Repositories;
 using ValidationException = MiniBank.Core.Exceptions.ValidationException;
@@ -16,13 +17,14 @@ namespace MiniBank.Core.BankAccounts.Services
         private readonly ITransferRepository _transferRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICurrencyConverter _converter;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
         private readonly IValidator<BankAccount> _accountValidator;
         private readonly IValidator<Transfer> _transferValidator;
 
         public BankAccountService(IBankAccountRepository accountRepository, ITransferRepository transferRepository,
             ICurrencyConverter converter, IUnitOfWork unitOfWork,
-            IValidator<BankAccount> accountValidator, IValidator<Transfer> transferValidator)
+            IValidator<BankAccount> accountValidator, IValidator<Transfer> transferValidator, IDateTimeProvider dateTimeProvider)
         {
             _accountRepository = accountRepository;
             _transferRepository = transferRepository;
@@ -30,6 +32,7 @@ namespace MiniBank.Core.BankAccounts.Services
             _unitOfWork = unitOfWork;
             _accountValidator = accountValidator;
             _transferValidator = transferValidator;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public async Task Create(BankAccount account, CancellationToken token)
@@ -37,7 +40,7 @@ namespace MiniBank.Core.BankAccounts.Services
             await _accountValidator.ValidateAndThrowAsync(account, token);
 
             account.Id = Guid.NewGuid().ToString();
-            account.OpeningDate = DateTime.Now;
+            account.OpeningDate = _dateTimeProvider.Now;
 
             await _accountRepository.Create(account, token);
 
@@ -50,15 +53,15 @@ namespace MiniBank.Core.BankAccounts.Services
 
             if (account.IsClosed)
             {
-                throw new ValidationException("Account already closed");
+                throw ValidationException.ClosingAccountAlreadyClosedException;
             }
 
             if (account.Amount != 0)
             {
-                throw new ValidationException("Can't close an account that has money in it");
+                throw ValidationException.ClosingAccountHasMoneyException;
             }
 
-            account.ClosingDate = DateTime.Now;
+            account.ClosingDate = _dateTimeProvider.Now;
             account.IsClosed = true;
 
             await _accountRepository.Update(account, token);
@@ -90,17 +93,17 @@ namespace MiniBank.Core.BankAccounts.Services
 
             if (fromAccount.IsClosed)
             {
-                throw new ValidationException("Sender account is closed");
+                throw ValidationException.SenderAccountIsClosedException;
             }
 
             if (toAccount.IsClosed)
             {
-                throw new ValidationException("Beneficiary's account is closed");
+                throw ValidationException.BeneficiaryAccountIsClosedException;
             }
 
             if (fromAccount.Amount < transferInfo.Amount)
             {
-                throw new ValidationException("Insufficient funds on the sender's account");
+                throw ValidationException.SenderDontHaveEnoughMoneyException;
             }
 
             transferInfo.CurrencyCode = fromAccount.CurrencyCode;
@@ -122,7 +125,7 @@ namespace MiniBank.Core.BankAccounts.Services
             await _accountRepository.Update(toAccount, token);
 
             transferInfo.Id = Guid.NewGuid().ToString();
-            transferInfo.TransferDateTime = DateTime.Now;
+            transferInfo.TransferDateTime = _dateTimeProvider.Now;
 
             await _transferRepository.Create(transferInfo, token);
 

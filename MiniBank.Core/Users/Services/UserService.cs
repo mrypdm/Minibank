@@ -61,7 +61,7 @@ namespace MiniBank.Core.Users.Services
         {
             if (await _accountRepository.ExistsAccountsForUserById(id, token))
             {
-                throw new ValidationException("The user has linked accounts");
+                throw ValidationException.DeletingUserHasAccountsException;
             }
 
             await _userRepository.DeleteById(id, token);
