@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniBank.Core.Users;
 using MiniBank.Core.Users.Services;
@@ -8,6 +9,7 @@ using MiniBank.Web.Controllers.Users.Dto;
 namespace MiniBank.Web.Controllers.Users
 {
     [ApiController]
+    [Authorize]
     [Route("[controller]")]
     public class UserController : ControllerBase
     {
