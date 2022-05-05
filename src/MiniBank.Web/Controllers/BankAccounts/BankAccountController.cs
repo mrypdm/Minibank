@@ -1,5 +1,6 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MiniBank.Core.BankAccounts;
 using MiniBank.Core.BankAccounts.Services;
@@ -9,6 +10,7 @@ using MiniBank.Web.Controllers.BankAccounts.Dto;
 namespace MiniBank.Web.Controllers.BankAccounts
 {
     [ApiController]
+    [Authorize]
     [Route("Account")]
     public class BankAccountController : ControllerBase
     {

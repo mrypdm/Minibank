@@ -31,7 +31,8 @@ namespace MiniBank.Data
 
             services.AddScoped<IUnitOfWork, EfUnitOfWork>();
 
-            services.AddDbContext<MiniBankContext>(op => op.UseNpgsql(configuration["PostgreSqlConnectionString"]));
+            services.AddDbContext<MiniBankContext>(op =>
+                op.UseNpgsql(configuration["PostgreSqlConnectionString"]).UseSnakeCaseNamingConvention());
 
             return services;
         }

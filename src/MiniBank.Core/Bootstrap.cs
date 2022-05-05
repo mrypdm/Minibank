@@ -19,8 +19,6 @@ namespace MiniBank.Core
 
             services.AddFluentValidation().AddValidatorsFromAssembly(typeof(Bootstrap).Assembly);
 
-            services.AddFluentValidation().AddValidatorsFromAssembly(typeof(Bootstrap).Assembly);
-
             return services;
         }
     }
