@@ -8,9 +8,7 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Setup .NET
@@ -23,3 +21,12 @@ jobs:
       run: dotnet build src --no-restore
     - name: Test
       run: dotnet test src --no-build --verbosity normal --logger "console;verbosity=detailed"
+
+  docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Docker
+      run: |
+        cd build
+        docker-compose build
