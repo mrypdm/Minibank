@@ -1,6 +1,7 @@
 using System.Threading;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.Extensions.Logging;
 using MiniBank.Core.BankAccounts.Repositories;
 using MiniBank.Core.Users;
 using MiniBank.Core.Users.Repositories;
@@ -17,6 +18,9 @@ namespace MiniBank.Core.Tests
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<IValidator<User>> _userValidatorMock;
 
+        private static readonly ILogger<UserService> Logger =
+            LoggerFactory.Create(logBuilder => logBuilder.AddConsole()).CreateLogger<UserService>();
+
         private readonly IUserService _userService;
 
         public UserServiceTests()
@@ -27,7 +31,7 @@ namespace MiniBank.Core.Tests
             _unitOfWorkMock = new Mock<IUnitOfWork>();
 
             _userService = new UserService(_userRepositoryMock.Object, _accountRepositoryMock.Object,
-                _unitOfWorkMock.Object, _userValidatorMock.Object);
+                _unitOfWorkMock.Object, _userValidatorMock.Object, Logger);
         }
 
         #region Tests for GetUserById
@@ -39,7 +43,9 @@ namespace MiniBank.Core.Tests
 
             var expectedUser = new User();
 
-            _userRepositoryMock.Setup(repo => repo.GetById(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(expectedUser);
+            _userRepositoryMock
+                .Setup(repo => repo.GetById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedUser);
 
             // ACT
 
@@ -63,11 +69,13 @@ namespace MiniBank.Core.Tests
             _userRepositoryMock
                 .Setup(repo => repo.GetById(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ThrowsAsync(expectedException);
-            
+
             // ACT
 
-            var exception = await Assert.ThrowsAsync<Exceptions.ValidationException>(() => _userService.GetById(id, CancellationToken.None));
-            
+            var exception =
+                await Assert.ThrowsAsync<Exceptions.ValidationException>(() =>
+                    _userService.GetById(id, CancellationToken.None));
+
             // ASSERT
 
             Assert.Equal(expectedException, exception);
@@ -132,8 +140,9 @@ namespace MiniBank.Core.Tests
 
             // ACT
 
-            var exception = await Assert.ThrowsAsync<ValidationException>(() => _userService.Create(user, CancellationToken.None));
-            
+            var exception =
+                await Assert.ThrowsAsync<ValidationException>(() => _userService.Create(user, CancellationToken.None));
+
             // ASSERT
 
             Assert.Equal(expectedException, exception);
@@ -199,8 +208,9 @@ namespace MiniBank.Core.Tests
 
             // ACT
 
-            var exception = await Assert.ThrowsAsync<ValidationException>(() => _userService.Create(user, CancellationToken.None));
-            
+            var exception =
+                await Assert.ThrowsAsync<ValidationException>(() => _userService.Create(user, CancellationToken.None));
+
             // ASSERT
 
             Assert.Equal(expectedException, exception);
@@ -241,8 +251,9 @@ namespace MiniBank.Core.Tests
             // ACT
 
             var exception =
-                await Assert.ThrowsAsync<Exceptions.ValidationException>(() => _userService.DeleteById("some id", CancellationToken.None));
-            
+                await Assert.ThrowsAsync<Exceptions.ValidationException>(() =>
+                    _userService.DeleteById("some id", CancellationToken.None));
+
             // ASSERT
 
             Assert.Equal(Exceptions.ValidationException.DeletingUserHasAccountsException.Message, exception.Message);
@@ -264,8 +275,10 @@ namespace MiniBank.Core.Tests
 
             // ACT
 
-            var exception = await Assert.ThrowsAsync<Exceptions.ValidationException>(() => _userService.DeleteById(id, CancellationToken.None));
-            
+            var exception =
+                await Assert.ThrowsAsync<Exceptions.ValidationException>(() =>
+                    _userService.DeleteById(id, CancellationToken.None));
+
             // ASSERT
 
             Assert.Equal(expectedException, exception);
