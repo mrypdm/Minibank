@@ -12,6 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build the Docker image
-        run: docker build -f build/MiniBank.Dockerfile
+        run: docker build -f build/MiniBank.Dockerfile .
       - name: Check Images
         run: docker images
