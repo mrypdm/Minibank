@@ -2,6 +2,7 @@
 using System.Threading;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.Extensions.Logging;
 using MiniBank.Core.BankAccounts;
 using MiniBank.Core.BankAccounts.Repositories;
 using MiniBank.Core.BankAccounts.Services;
@@ -24,6 +25,9 @@ namespace MiniBank.Core.Tests
         private readonly Mock<IValidator<Transfer>> _transferValidatorMock;
         private readonly Mock<IDateTimeProvider> _dateTimeProviderMock;
 
+        private static readonly ILogger<BankAccountService> Logger =
+            LoggerFactory.Create(logBuilder => logBuilder.AddConsole()).CreateLogger<BankAccountService>();
+
         private readonly IBankAccountService _accountService;
 
         public BankAccountTests()
@@ -36,10 +40,9 @@ namespace MiniBank.Core.Tests
             _transferValidatorMock = new Mock<IValidator<Transfer>>();
             _dateTimeProviderMock = new Mock<IDateTimeProvider>();
 
-
             _accountService = new BankAccountService(_accountRepositoryMock.Object, _transferRepositoryMock.Object,
                 _currencyConverterMock.Object, _unitOfWorkMock.Object, _accountValidatorMock.Object,
-                _transferValidatorMock.Object, _dateTimeProviderMock.Object);
+                _transferValidatorMock.Object, _dateTimeProviderMock.Object, Logger);
         }
 
         #region Tests for CreateAcccount
@@ -499,13 +502,13 @@ namespace MiniBank.Core.Tests
                 TransferDateTime = default
             };
 
-            double testFromAccountAmount = 1000;
+            double fromAccountAmount = 1000;
 
             var fromAccount = new BankAccount
             {
                 UserId = "userid1",
                 CurrencyCode = CurrencyCodes.USD,
-                Amount = testFromAccountAmount,
+                Amount = fromAccountAmount,
                 IsClosed = false
             };
 
@@ -535,7 +538,7 @@ namespace MiniBank.Core.Tests
 
             // ASSERT
 
-            Assert.Equal(testFromAccountAmount - transfer.Amount, fromAccount.Amount);
+            Assert.Equal(fromAccountAmount - transfer.Amount, fromAccount.Amount);
             Assert.Equal(expectedNewAmount, toAccount.Amount);
             Assert.NotNull(transfer.Id);
             Assert.Equal(expectedDateTime, transfer.TransferDateTime);
@@ -638,13 +641,13 @@ namespace MiniBank.Core.Tests
                 TransferDateTime = default
             };
 
-            double testFromAccountAmount = 1000;
+            double fromAccountAmount = 1000;
 
             var fromAccount = new BankAccount
             {
                 UserId = "userid1",
                 CurrencyCode = CurrencyCodes.USD,
-                Amount = testFromAccountAmount,
+                Amount = fromAccountAmount,
                 IsClosed = false
             };
 
@@ -674,7 +677,7 @@ namespace MiniBank.Core.Tests
 
             // ASSERT
 
-            Assert.Equal(testFromAccountAmount - transfer.Amount, fromAccount.Amount);
+            Assert.Equal(fromAccountAmount - transfer.Amount, fromAccount.Amount);
             Assert.Equal(expectedNewAmount, toAccount.Amount);
             Assert.NotNull(transfer.Id);
             Assert.Equal(expectedDateTime, transfer.TransferDateTime);
@@ -1022,6 +1025,72 @@ namespace MiniBank.Core.Tests
                     validator.ValidateAsync(
                         It.Is<ValidationContext<Transfer>>(context => context.InstanceToValidate == transfer),
                         It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Fact]
+        public async void MakeTransfer_BadAmount_ShouldRound()
+        {
+            // ARRANGE
+
+            var transfer = new Transfer
+            {
+                Amount = 10.123,
+                FromAccountId = "id1",
+                ToAccountId = "id2",
+                Id = null,
+                TransferDateTime = default
+            };
+
+            double fromAccountAmount = 1000;
+
+            var fromAccount = new BankAccount
+            {
+                UserId = "userid1",
+                CurrencyCode = CurrencyCodes.USD,
+                Amount = fromAccountAmount,
+                IsClosed = false
+            };
+
+            var toAccount = new BankAccount
+            {
+                UserId = "userid1",
+                CurrencyCode = CurrencyCodes.USD,
+                Amount = 0,
+                IsClosed = false
+            };
+
+            _accountRepositoryMock
+                .Setup(repo => repo.GetById(transfer.FromAccountId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(fromAccount);
+            _accountRepositoryMock
+                .Setup(repo => repo.GetById(transfer.ToAccountId, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(toAccount);
+
+            var expectedDateTime = DateTime.Now;
+            _dateTimeProviderMock.Setup(provider => provider.Now).Returns(expectedDateTime);
+
+            // ACT
+
+            await _accountService.MakeTransfer(transfer, CancellationToken.None);
+
+            // ASSERT
+
+            Assert.Equal(Math.Round(transfer.Amount, 2), transfer.Amount);
+
+            Assert.Equal(transfer.Amount, toAccount.Amount);
+            Assert.Equal(fromAccountAmount - transfer.Amount, fromAccount.Amount);
+            Assert.NotNull(transfer.Id);
+            Assert.Equal(expectedDateTime, transfer.TransferDateTime);
+
+            _accountRepositoryMock.Verify(repo => repo.Update(fromAccount, It.IsAny<CancellationToken>()), Times.Once);
+            _accountRepositoryMock.Verify(repo => repo.Update(toAccount, It.IsAny<CancellationToken>()), Times.Once);
+            _transferRepositoryMock.Verify(repo => repo.Create(transfer, It.IsAny<CancellationToken>()), Times.Once);
+            _transferValidatorMock.Verify(
+                validator =>
+                    validator.ValidateAsync(
+                        It.Is<ValidationContext<Transfer>>(context => context.InstanceToValidate == transfer),
+                        It.IsAny<CancellationToken>()), Times.Once);
+            _unitOfWorkMock.Verify(unit => unit.SaveChanges(It.IsAny<CancellationToken>()), Times.Once);
         }
 
         #endregion
