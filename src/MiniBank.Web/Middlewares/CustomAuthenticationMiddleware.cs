@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace MiniBank.Web.Middlewares
 {
@@ -23,7 +24,7 @@ namespace MiniBank.Web.Middlewares
 
         private string DecodeBase64(string base64String)
         {
-            var rawData = Convert.FromBase64String(base64String);
+            var rawData = WebEncoders.Base64UrlDecode(base64String);
             var originalString = Encoding.UTF8.GetString(rawData);
             return originalString;
         }
@@ -36,7 +37,7 @@ namespace MiniBank.Web.Middlewares
 
                 var payload = JsonSerializer.Deserialize<TokenPayload>(payloadString);
 
-                var exp = DateTimeOffset.FromUnixTimeSeconds(payload.exp).LocalDateTime;
+                var exp = DateTimeOffset.FromUnixTimeSeconds(payload!.exp).LocalDateTime;
 
                 return exp;
             }
