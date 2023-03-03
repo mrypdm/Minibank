@@ -27,10 +27,10 @@ namespace MiniBank.Data.Currencies
             double GetRateFromResponse(CurrencyCodes code) =>
                 code == CurrencyCodes.RUB ? 1 : response.Valute[code.ToString()].Value;
 
-            var toFirstRate = GetRateFromResponse(fromCurrency);
-            var toSecondRate = GetRateFromResponse(toCurrency);
+            var fromCurrencyRate = GetRateFromResponse(fromCurrency);
+            var toCurrencyRate = GetRateFromResponse(toCurrency);
 
-            return toSecondRate / toFirstRate;
+            return fromCurrencyRate / toCurrencyRate;
         }
     }
 }
